@@ -1,0 +1,13 @@
+{
+  "name": "local-race-game",
+  "version": "1.0.0",
+  "description": "Web tabanlı 2D yerel multi-player yarış oyunu",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "ws": "^8.18.0"
+  }
+}

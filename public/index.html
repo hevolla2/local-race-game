@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yerel Yarış Oyunu - Multiplayer</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div id="lobby" class="screen">
+        <div class="lobby-box wide">
+            <h1>🏁 Yerel Yarış</h1>
+            <div class="lobby-info">
+                <div class="server-info" id="serverInfo">Sunucuya bağlanılıyor...</div>
+                <div class="net-info" id="netInfo"></div>
+
+                <div class="setup-grid3">
+                    <div class="setup-col">
+                        <h3>🚗 Araban <span id="coinBadge" class="coin">🪙 100</span></h3>
+                        <input type="text" id="nameInput" placeholder="İsminizi girin" maxlength="16" autocomplete="off">
+                        <div class="label">Renk</div>
+                        <div class="swatches" id="colorSwatches"></div>
+                        <div class="custom-color">
+                            <input type="color" id="customColor" value="#ff4444">
+                            <span>Özel renk</span>
+                        </div>
+                        <div class="label">Skin</div>
+                        <div class="skins" id="skinPicker"></div>
+                        <canvas id="skinPreview" width="220" height="110"></canvas>
+                    </div>
+                    <div class="setup-col">
+                        <h3>🗺️ Pist Dükkanı <span id="mapHostBadge" class="badge">sadece host seçer</span></h3>
+                        <div class="map-tabs">
+                            <button class="map-tab active" data-tab="builtin">🏁 Hazır</button>
+                            <button class="map-tab" data-tab="custom">✏️ Oyuncu <span id="customCount">0</span></button>
+                        </div>
+                        <div class="maps" id="mapPicker"></div>
+                        <div class="map-desc" id="mapDesc"></div>
+                        <button id="openEditorBtn" class="editor-open">🛠️ Kendi Mapini Yap</button>
+                        <div class="legend">🛢️ yağ = kaydırır & yavaşlatır • 🟢 ped = nitro doldurur</div>
+                        <h3>👥 Oyuncular</h3>
+                        <div class="player-list" id="playerList"></div>
+                    </div>
+                    <div class="setup-col">
+                        <h3>🛒 Efekt Marketi</h3>
+                        <div class="shop-tabs">
+                            <button class="shop-tab active" data-tab="trail">💨 Egzoz</button>
+                            <button class="shop-tab" data-tab="nitro">🔥 Nitro</button>
+                            <button class="shop-tab" data-tab="glow">💡 Glow</button>
+                        </div>
+                        <div class="shop-items" id="shopItems"></div>
+                        <div class="shop-note">Tüm efektler ücretsiz! Kuşanılan efekt herkese görünür.</div>
+                    </div>
+                </div>
+
+                <div class="lobby-controls">
+                    <button id="startBtn" disabled>Yarışı Başlat</button>
+                </div>
+                <div class="hint">Nitro: <kbd>SPACE</kbd> — Sürüş: <kbd>WASD</kbd> / <kbd>↑↓←→</kbd></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="editorModal" class="modal" style="display:none">
+        <div class="editor-box">
+            <h2 id="editorTitle">🛠️ Map Editörü</h2>
+            <div class="editor-tools">
+                <button class="etool active" data-tool="track" title="Pist noktası ekle/taşı">🛣️ Pist</button>
+                <button class="etool" data-tool="oil" title="Yağ lekesi yerleştir">🛢️ Yağ</button>
+                <button class="etool" data-tool="pad" title="Nitro pedi yerleştir">🟢 Ped</button>
+                <button class="etool" data-tool="start" title="Start çizgisini seç">🏁 Start</button>
+            </div>
+            <p class="editor-hint" id="editorHint">Tıkla: nokta ekle • Sürükle: taşı • Çift tık: sil • Eğriye tıkla: araya nokta ekle</p>
+            <canvas id="editorCanvas" width="600" height="400"></canvas>
+            <div class="editor-stats" id="editorStats"></div>
+            <div class="editor-row">
+                <input type="text" id="editorName" placeholder="Map adı (örn: Benim Pistim)" maxlength="24">
+                <label class="check snap"><input type="checkbox" id="edSnap"> 🧲 Izgara</label>
+            </div>
+            <div class="editor-row wrap">
+                <button id="tplOval" class="secondary small">○ Oval şablon</button>
+                <button id="tplWave" class="secondary small">∿ Dalga şablon</button>
+                <button id="tplStar" class="secondary small">☆ Yıldız şablon</button>
+                <button id="edMirrorH" class="secondary small">⇋ Yatay çevir</button>
+                <button id="edMirrorV" class="secondary small">⇅ Dikey çevir</button>
+                <button id="editorUndo" class="secondary small">↩ Geri Al</button>
+                <button id="editorClear" class="secondary small">🗑 Temizle</button>
+            </div>
+            <div class="editor-grid">
+                <label>Genişlik <b id="edWidthVal">80</b><input type="range" id="edWidth" min="50" max="140" value="80"></label>
+                <label>Tur <b id="edLapsVal">3</b><input type="range" id="edLaps" min="1" max="9" value="3"></label>
+                <label>Tema <select id="edTheme">
+                    <option value="klasik">🌿 Klasik</option>
+                    <option value="dalgali">🌊 Dalgalı</option>
+                    <option value="teknik">🏜️ Teknik</option>
+                    <option value="hizli">🌃 Hız</option>
+                    <option value="buz">🧊 Buz</option>
+                    <option value="cehennem">🔥 Cehennem</option>
+                </select></label>
+                <label class="check"><input type="checkbox" id="edIce"> 🧊 Buz pisti (kaygan zemin)</label>
+                <div class="editor-points" id="editorPoints">Nokta: 0/30</div>
+                <div class="editor-points" id="editorSpots">🛢️ 0 • 🟢 0 <button id="edClearSpots" class="secondary small">Engelleri temizle</button></div>
+            </div>
+            <div class="editor-row">
+                <button id="editorSave">💾 Kaydet ve Dükkana Ekle</button>
+                <button id="editorClose" class="secondary">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="raceScreen" class="screen" style="display:none">
+        <canvas id="gameCanvas"></canvas>
+        <div class="hud">
+            <div class="hud-left">
+                <div class="lap-counter" id="lapCounter">Tur: 0/3</div>
+                <div class="speed-meter" id="speedMeter">0 km/h</div>
+                <div class="boost-wrap">
+                    <div class="boost-label">NİTRO <span class="key">SPACE</span></div>
+                    <div class="boost-bar"><div id="boostFill"></div></div>
+                </div>
+                <div class="lap-times">
+                    <div id="lastLap">Son: --</div>
+                    <div id="bestLap">En iyi: --</div>
+                </div>
+                <div class="coin-hud" id="coinHud">🪙 0</div>
+            </div>
+            <div class="hud-center">
+                <div class="countdown" id="countdown" style="display:none"></div>
+                <div class="warn" id="warnMsg" style="display:none">🛢️ YAĞ!</div>
+            </div>
+            <div class="hud-right">
+                <div class="position" id="position">Pozisyon: --</div>
+                <div class="timer" id="timer">00:00</div>
+                <canvas id="minimap" width="180" height="120"></canvas>
+                <div class="map-name" id="hudMapName"></div>
+            </div>
+        </div>
+        <div class="controls-hint"><span><kbd>WASD</kbd> sür • <kbd>SPACE</kbd> nitro • 🛢️ yağdan kaç 🟢 pede bas</span></div>
+    </div>
+    <div id="finishedScreen" class="screen" style="display:none">
+        <div class="finished-box">
+            <h2 id="finishedTitle">Yarış Bitti!</h2>
+            <div id="coinEarn" class="coin-earn"></div>
+            <div id="results"></div>
+            <div class="finished-controls">
+                <button id="restartBtn">Tekrar Oyna</button>
+                <button id="menuBtn" class="secondary">Ana Menü</button>
+            </div>
+        </div>
+    </div>
+    <script src="/game.js"></script>
+</body>
+</html>
