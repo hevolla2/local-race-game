@@ -113,6 +113,55 @@ h3 { font-size: 15px; margin: 12px 0 8px; color: #ff8c42; text-align: left; }
 .warn { font-size: 28px; font-weight: bold; color: #ffdd00; text-shadow: 0 0 20px #ff8800, 0 2px 0 #000; animation: warnblink 0.4s infinite alternate; margin-top: 12px; }
 @keyframes warnblink { from { transform: scale(1); } to { transform: scale(1.1); } }
 
+/* Ana menü */
+#home { display: flex; align-items: center; justify-content: center; padding: 20px; }
+.home-box { text-align: center; width: 95%; max-width: 560px; }
+.home-box h1 { font-size: 44px; }
+.home-sub { color: #999; font-size: 14px; margin-bottom: 8px; }
+.home-net { font-size: 12px; color: #ff4d00; margin-bottom: 20px; word-break: break-all; }
+.home-menu { display: grid; gap: 12px; }
+.menu-btn { display: flex; align-items: center; gap: 14px; background: #141414; color: #eee; border: 2px solid #333; border-radius: 12px; padding: 16px 20px; margin: 0; text-align: left; font-size: 16px; }
+.menu-btn:hover { border-color: #ff4d00; background: #1e140e; }
+.menu-btn .m-ico { font-size: 34px; }
+.menu-btn b { font-size: 20px; display: block; }
+.menu-btn small { font-size: 12px; color: #999; display: block; margin-top: 2px; }
+.home-box .hint { margin-top: 18px; }
+
+/* Dükkan ekranı */
+#shop { display: none; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+.shop-box { width: 95%; max-width: 640px; text-align: center; background: rgba(10,10,10,0.9); padding: 24px; border-radius: 8px; border: 1px solid #333; }
+.shop-box h1 { margin-bottom: 12px; }
+.shop-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.coin.big { font-size: 18px; padding: 6px 16px; }
+.shop-items.big { max-height: 46vh; }
+.shop-items.big .shop-item { font-size: 14px; padding: 12px; }
+
+/* Yapımcılar */
+#credits { display: none; align-items: center; justify-content: center; padding: 20px; }
+.credits-box { text-align: center; width: 95%; max-width: 480px; background: rgba(10,10,10,0.9); padding: 32px 24px; border-radius: 8px; border: 1px solid #333; }
+.credits-box h1 { margin-bottom: 20px; }
+.credit-card { display: grid; gap: 12px; margin-bottom: 16px; }
+.credit-row { display: flex; align-items: center; gap: 14px; background: #1a1a1a; border: 1px solid #ff4d00; border-radius: 10px; padding: 14px 18px; text-align: left; }
+.credit-row .c-ico { font-size: 32px; }
+.credit-row b { font-size: 20px; display: block; color: #fff; }
+.credit-row small { font-size: 12px; color: #00d4ff; }
+.credits-box .hint { margin-bottom: 12px; }
+
+/* Odalar */
+#rooms { display: none; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+.rooms-box { text-align: center; width: 95%; max-width: 560px; background: rgba(10,10,10,0.9); padding: 24px; border-radius: 8px; border: 1px solid #333; }
+.rooms-box h1 { margin-bottom: 14px; }
+.rooms-create { display: flex; gap: 8px; margin-bottom: 14px; }
+.rooms-create input { flex: 1; background: #1a1a1a; border: 1px solid #444; color: #e0e0e0; padding: 12px; border-radius: 4px; font-family: inherit; font-size: 14px; min-width: 0; }
+.rooms-create button { margin: 0; white-space: nowrap; }
+.rooms-list { display: grid; gap: 8px; max-height: 44vh; overflow-y: auto; margin-bottom: 14px; }
+.room-card { display: flex; align-items: center; gap: 10px; background: #1a1a1a; border: 2px solid #333; border-radius: 10px; padding: 10px 14px; text-align: left; }
+.room-card:hover { border-color: #00d4ff; }
+.room-info { flex: 1; min-width: 0; }
+.room-info b { font-size: 16px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff; }
+.room-info small { font-size: 11px; color: #999; }
+.room-title { font-size: 15px; color: #00d4ff; margin-bottom: 10px; font-weight: bold; }
+
 /* Map dükkanı + editör */
 .map-tabs { display: flex; gap: 6px; margin-bottom: 8px; }
 .map-tab { flex: 1; margin: 0; padding: 8px 4px; font-size: 12px; background: #222; color: #aaa; border: 1px solid #333; }

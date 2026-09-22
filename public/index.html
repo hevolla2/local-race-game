@@ -7,14 +7,29 @@
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-    <div id="lobby" class="screen">
-        <div class="lobby-box wide">
+    <div id="home" class="screen">
+        <div class="home-box">
             <h1>🏁 Yerel Yarış</h1>
+            <div class="home-sub">2D yerel multiplayer yarış oyunu</div>
+            <div class="home-net" id="homeNet">Sunucuya bağlanılıyor...</div>
+            <div class="home-menu">
+                <button id="goLobbyBtn" class="menu-btn"><span class="m-ico">🎮</span><b>Lobi</b><small>Kurulum ve yarış başlatma</small></button>
+                <button id="goShopBtn" class="menu-btn"><span class="m-ico">🛒</span><b>Dükkan</b><small>Efektler <span id="homeCoins" class="coin">🪙 100</span></small></button>
+                <button id="goCreditsBtn" class="menu-btn"><span class="m-ico">👥</span><b>Yapımcılar</b><small>Emeği geçenler</small></button>
+            </div>
+            <div class="hint">Aynı Wi-Fi'dekiler lobide buluşur • Nitro: <kbd>SPACE</kbd></div>
+        </div>
+    </div>
+
+    <div id="lobby" class="screen" style="display:none">
+        <div class="lobby-box wide">
+            <h1>🎮 Lobi</h1>
+            <div class="room-title" id="roomTitle">🚪 Oda</div>
             <div class="lobby-info">
                 <div class="server-info" id="serverInfo">Sunucuya bağlanılıyor...</div>
                 <div class="net-info" id="netInfo"></div>
 
-                <div class="setup-grid3">
+                <div class="setup-grid">
                     <div class="setup-col">
                         <h3>🚗 Araban <span id="coinBadge" class="coin">🪙 100</span></h3>
                         <input type="text" id="nameInput" placeholder="İsminizi girin" maxlength="16" autocomplete="off">
@@ -41,23 +56,56 @@
                         <h3>👥 Oyuncular</h3>
                         <div class="player-list" id="playerList"></div>
                     </div>
-                    <div class="setup-col">
-                        <h3>🛒 Efekt Marketi</h3>
-                        <div class="shop-tabs">
-                            <button class="shop-tab active" data-tab="trail">💨 Egzoz</button>
-                            <button class="shop-tab" data-tab="nitro">🔥 Nitro</button>
-                            <button class="shop-tab" data-tab="glow">💡 Glow</button>
-                        </div>
-                        <div class="shop-items" id="shopItems"></div>
-                        <div class="shop-note">Tüm efektler ücretsiz! Kuşanılan efekt herkese görünür.</div>
-                    </div>
                 </div>
 
                 <div class="lobby-controls">
                     <button id="startBtn" disabled>Yarışı Başlat</button>
+                    <button id="lobbyBackBtn" class="secondary">← Ana Menü</button>
                 </div>
-                <div class="hint">Nitro: <kbd>SPACE</kbd> — Sürüş: <kbd>WASD</kbd> / <kbd>↑↓←→</kbd></div>
+                <div class="hint">Nitro: <kbd>SPACE</kbd> — Sürüş: <kbd>WASD</kbd> / <kbd>↑↓←→</kbd> — Efektler için <b>Dükkan</b>'a bak!</div>
             </div>
+        </div>
+    </div>
+
+    <div id="rooms" class="screen" style="display:none">
+        <div class="rooms-box">
+            <h1>🚪 Odalar</h1>
+            <div class="rooms-create">
+                <input type="text" id="roomNameInput" placeholder="Oda adı (boş bırakırsan isminle kurulur)" maxlength="20" autocomplete="off">
+                <button id="createRoomBtn">＋ Oda Oluştur</button>
+            </div>
+            <div class="rooms-list" id="roomList"></div>
+            <button id="roomsBackBtn" class="secondary">← Ana Menü</button>
+            <div class="hint">Herkes kendi odasını kurar • Yarıştaki odaya katılamazsın</div>
+        </div>
+    </div>
+
+    <div id="shop" class="screen" style="display:none">
+        <div class="shop-box">
+            <h1>🛒 Dükkan</h1>
+            <div class="shop-top">
+                <span id="shopCoins" class="coin big">🪙 100</span>
+                <button id="shopBackBtn" class="secondary small">← Ana Menü</button>
+            </div>
+            <div class="shop-tabs">
+                <button class="shop-tab active" data-tab="trail">💨 Egzoz</button>
+                <button class="shop-tab" data-tab="nitro">🔥 Nitro</button>
+                <button class="shop-tab" data-tab="glow">💡 Glow</button>
+            </div>
+            <div class="shop-items big" id="shopItems"></div>
+            <div class="shop-note">Tüm efektler ücretsiz! Kuşanılan efekt herkese görünür. Önizleme için lobideki arabana bak 🚗</div>
+        </div>
+    </div>
+
+    <div id="credits" class="screen" style="display:none">
+        <div class="credits-box">
+            <h1>👥 Yapımcılar</h1>
+            <div class="credit-card">
+                <div class="credit-row"><span class="c-ico">🧑‍💻</span><div><b>Yiğit K.</b><small>Yapımcı • 11/F</small></div></div>
+                <div class="credit-row"><span class="c-ico">🧑‍💻</span><div><b>Özgür Ş.</b><small>Yapımcı • 11/F</small></div></div>
+            </div>
+            <div class="hint">🏁 Yerel Yarış • İyi yarışlar!</div>
+            <button id="creditsBackBtn" class="secondary">← Ana Menü</button>
         </div>
     </div>
 
@@ -70,7 +118,7 @@
                 <button class="etool" data-tool="pad" title="Nitro pedi yerleştir">🟢 Ped</button>
                 <button class="etool" data-tool="start" title="Start çizgisini seç">🏁 Start</button>
             </div>
-            <p class="editor-hint" id="editorHint">Tıkla: nokta ekle • Sürükle: taşı • Çift tık: sil • Eğriye tıkla: araya nokta ekle</p>
+            <p class="editor-hint" id="editorHint">Tıkla: nokta ekle • Sürükle: taşı • Çift tık: sil • Eğriye yakın tıkla: araya nokta ekle</p>
             <canvas id="editorCanvas" width="600" height="400"></canvas>
             <div class="editor-stats" id="editorStats"></div>
             <div class="editor-row">
@@ -99,7 +147,7 @@
                 </select></label>
                 <label class="check"><input type="checkbox" id="edIce"> 🧊 Buz pisti (kaygan zemin)</label>
                 <div class="editor-points" id="editorPoints">Nokta: 0/30</div>
-                <div class="editor-points" id="editorSpots">🛢️ 0 • 🟢 0 <button id="edClearSpots" class="secondary small">Engelleri temizle</button></div>
+                <div class="editor-points" id="editorSpots">🛢️ 0/16 • 🟢 0/8 <button id="edClearSpots" class="secondary small">Engelleri temizle</button></div>
             </div>
             <div class="editor-row">
                 <button id="editorSave">💾 Kaydet ve Dükkana Ekle</button>

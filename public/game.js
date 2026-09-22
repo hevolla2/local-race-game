@@ -52,6 +52,9 @@ class RaceGame {
         this.myEquipped = JSON.parse(localStorage.getItem('race_equipped') || '{"trail":"duman","nitro":"klasik","glow":"yok"}');
         this.shopTab = 'trail';
         this.mapTab = 'builtin';
+        this.menuView = 'home';
+        this.roomList = [];
+        this.myRoomId = null;
         this.hue = 0;
         if (!localStorage.getItem('race_owner')) {
             localStorage.setItem('race_owner', 'o_' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36));
@@ -105,14 +108,17 @@ class RaceGame {
 
     showNetInfo() {
         const el = document.getElementById('netInfo');
-        if (!el) return;
+        const home = document.getElementById('homeNet');
+        let msg;
         if (window.location.protocol === 'file:') {
-            el.textContent = 'Dosya olarak açıldı — önce sunucuyu çalıştırıp http://localhost:8080 adresinden girin.';
-            return;
+            msg = 'Dosya olarak açıldı — önce sunucuyu çalıştırıp http://localhost:8080 adresinden girin.';
+        } else {
+            const host = window.location.hostname || 'localhost';
+            const port = window.location.port || '8080';
+            msg = 'Aynı Wi-Fi’deki diğer PC’ler şu adresten katılsın: http://' + host + ':' + port;
         }
-        const host = window.location.hostname || 'localhost';
-        const port = window.location.port || '8080';
-        el.textContent = 'Aynı Wi-Fi’deki diğer PC’ler şu adresten katılsın: http://' + host + ':' + port;
+        if (el) el.textContent = msg;
+        if (home) home.textContent = msg;
     }
 
     // ---------- market ----------
@@ -154,6 +160,10 @@ class RaceGame {
         });
         const cb = document.getElementById('coinBadge');
         if (cb) cb.textContent = '🪙 ' + this.myCoins;
+        const sc = document.getElementById('shopCoins');
+        if (sc) sc.textContent = '🪙 ' + this.myCoins;
+        const hc = document.getElementById('homeCoins');
+        if (hc) hc.textContent = '🪙 ' + this.myCoins;
     }
 
     // ---------- lobby seçim UI ----------
@@ -226,6 +236,49 @@ class RaceGame {
                 this.buildMapPicker();
                 this.ensureAudio(); this.beep(500, 0.06);
             });
+        });
+    }
+
+    createRoom() {
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+        const v = document.getElementById('roomNameInput').value.trim();
+        this.ensureAudio();
+        this.ws.send(JSON.stringify({ type: 'create_room', name: v }));
+        document.getElementById('roomNameInput').value = '';
+    }
+
+    renderRoomList() {
+        const box = document.getElementById('roomList');
+        if (!box) return;
+        box.innerHTML = '';
+        if (!this.roomList.length) {
+            box.innerHTML = '<div class="shop-empty">Henüz oda yok — ilk odayı sen kur! 🎉</div>';
+            return;
+        }
+        const badge = { LOBBY: '🟢 Bekliyor', COUNTDOWN: '⏳ Başlıyor', RACING: '🏁 Yarışıyor', FINISHED: '🏁 Bitti' };
+        this.roomList.forEach(r => {
+            const card = document.createElement('div');
+            card.className = 'room-card';
+            const info = document.createElement('div');
+            info.className = 'room-info';
+            const nm = document.createElement('b');
+            nm.textContent = r.name;
+            info.appendChild(nm);
+            const sm = document.createElement('small');
+            sm.textContent = '👑 ' + r.host + ' • 👥 ' + r.players + '/' + r.maxPlayers + ' • ' + (badge[r.state] || r.state) + ' • 🗺️ ' + r.mapName;
+            info.appendChild(sm);
+            card.appendChild(info);
+            const join = document.createElement('button');
+            join.className = 'small';
+            const canJoin = r.state === 'LOBBY' && r.players < r.maxPlayers;
+            join.textContent = canJoin ? '➡️ Katıl' : (r.players >= r.maxPlayers ? 'Dolu' : 'Yarışta');
+            join.disabled = !canJoin;
+            join.addEventListener('click', () => {
+                this.ensureAudio();
+                this.ws.send(JSON.stringify({ type: 'join_room', roomId: r.id }));
+            });
+            card.appendChild(join);
+            box.appendChild(card);
         });
     }
 
@@ -860,16 +913,49 @@ class RaceGame {
                 if (data.player.owned) this.myOwned = data.player.owned;
                 if (this.myName) document.getElementById('nameInput').value = this.myName;
                 else document.getElementById('nameInput').value = data.player.name || '';
-                this.state = data.state;
-                this.syncMe();
+                this.roomList = data.rooms || [];
+                this.myRoomId = null;
+                this.state = { state: 'NO_ROOM', players: [], maxPlayers: 4, trackPoints: [], trackWidth: 100, totalLaps: 3, countDown: 0, mapId: 'klasik', maps: {}, shop: {}, oilSlicks: [], boostPads: [] };
+                this.menuView = 'home';
                 this.lastRenderedState = null;
                 this.lobbyCacheKey = '';
                 setTimeout(() => this.pushCustom(), 200);
+                this.renderRoomList();
+                this.buildShop();
+                this.refreshPickerActive();
+                this.drawPreview();
+                break;
+            case 'rooms':
+                this.roomList = data.rooms || [];
+                if (this.menuView === 'rooms' && this.state.state === 'NO_ROOM') this.renderRoomList();
+                break;
+            case 'joined':
+                this.myRoomId = data.roomId;
+                this.state = data.state;
+                this.syncMe();
+                this.menuView = 'lobby';
+                this.lastRenderedState = null;
+                this.lobbyCacheKey = '';
                 this.updateLobby(true);
                 this.buildMapPicker();
                 this.buildShop();
                 this.refreshPickerActive();
-                this.drawPreview();
+                break;
+            case 'room_error':
+                alert('🚪 ' + data.message);
+                this.beep(200, 0.2, 0.08);
+                break;
+            case 'profile':
+                if (data.player) {
+                    if (typeof data.player.coins === 'number') this.myCoins = data.player.coins;
+                    if (data.player.owned) this.myOwned = data.player.owned;
+                    if (data.player.equipped) {
+                        for (const k of ['trail', 'nitro', 'glow']) {
+                            if (data.player.equipped[k]) this.myEquipped[k] = data.player.equipped[k];
+                        }
+                    }
+                    this.buildShop();
+                }
                 break;
             case 'state': {
                 const prev = this.state.state;
@@ -973,11 +1059,32 @@ class RaceGame {
         document.getElementById('restartBtn').addEventListener('click', () => {
             if (this.ws && this.ws.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify({ type: 'reset' }));
             this.raceComplete = false;
+            this.menuView = 'lobby';
         });
         document.getElementById('menuBtn').addEventListener('click', () => {
             if (this.ws && this.ws.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify({ type: 'reset' }));
             this.raceComplete = false;
+            this.menuView = 'home';
         });
+        // ana menü navigasyonu
+        document.getElementById('goLobbyBtn').addEventListener('click', () => { this.ensureAudio(); this.showMenu('rooms'); });
+        document.getElementById('goShopBtn').addEventListener('click', () => { this.ensureAudio(); this.showMenu('shop'); });
+        document.getElementById('goCreditsBtn').addEventListener('click', () => { this.ensureAudio(); this.showMenu('credits'); });
+        document.getElementById('lobbyBackBtn').addEventListener('click', () => {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify({ type: 'leave_room' }));
+            this.myRoomId = null;
+            this.state = Object.assign({}, this.state, { state: 'NO_ROOM', players: [] });
+            this.showMenu('home');
+        });
+        document.getElementById('shopBackBtn').addEventListener('click', () => this.showMenu('home'));
+        document.getElementById('creditsBackBtn').addEventListener('click', () => this.showMenu('home'));
+        // odalar
+        document.getElementById('createRoomBtn').addEventListener('click', () => this.createRoom());
+        document.getElementById('roomNameInput').addEventListener('keydown', (e) => {
+            e.stopPropagation();
+            if (e.key === 'Enter') this.createRoom();
+        });
+        document.getElementById('roomsBackBtn').addEventListener('click', () => this.showMenu('home'));
         document.addEventListener('pointerdown', () => this.ensureAudio(), { once: true });
 
         window.addEventListener('keydown', (e) => {
@@ -1004,7 +1111,7 @@ class RaceGame {
         const sig = JSON.stringify([
             this.state.state, this.state.countDown,
             this.state.players.map(p => [p.id, p.name, p.lap, p.finished, p.isHost, p.color, p.skin, p.bestLap, p.coins, p.equipped]),
-            this.isHost, this.state.mapId, this.myCoins,
+            this.isHost, this.state.mapId, this.myCoins, this.state.roomName,
         ]);
         if (!force && sig === this.lobbyCacheKey) return;
         this.lobbyCacheKey = sig;
@@ -1013,6 +1120,8 @@ class RaceGame {
         const startBtn = document.getElementById('startBtn');
         const serverInfo = document.getElementById('serverInfo');
         if (!playerList) return;
+        const rt = document.getElementById('roomTitle');
+        if (rt) rt.textContent = '🚪 ' + (this.state.roomName || 'Oda');
         playerList.innerHTML = '';
         this.state.players.forEach(p => {
             const el = document.createElement('div');
@@ -1039,6 +1148,10 @@ class RaceGame {
         if (cb) cb.textContent = '🪙 ' + this.myCoins;
         const ch = document.getElementById('coinHud');
         if (ch) ch.textContent = '🪙 ' + this.myCoins;
+        const sc2 = document.getElementById('shopCoins');
+        if (sc2) sc2.textContent = '🪙 ' + this.myCoins;
+        const hc2 = document.getElementById('homeCoins');
+        if (hc2) hc2.textContent = '🪙 ' + this.myCoins;
 
         const canStart = this.isHost && this.state.state === 'LOBBY' && this.state.players.length >= 1;
         startBtn.disabled = !canStart;
@@ -1051,13 +1164,28 @@ class RaceGame {
     }
 
     showScreen(name) {
-        document.getElementById('lobby').style.display = name === 'lobby' ? 'flex' : 'none';
-        document.getElementById('raceScreen').style.display = name === 'race' ? 'flex' : 'none';
-        document.getElementById('finishedScreen').style.display = name === 'finished' ? 'flex' : 'none';
+        const vis = (id, on) => { document.getElementById(id).style.display = on ? 'flex' : 'none'; };
+        vis('home', name === 'home');
+        vis('rooms', name === 'rooms');
+        vis('lobby', name === 'lobby');
+        vis('shop', name === 'shop');
+        vis('credits', name === 'credits');
+        vis('raceScreen', name === 'race');
+        vis('finishedScreen', name === 'finished');
+    }
+
+    showMenu(view) {
+        this.menuView = view;
+        if (view === 'shop') this.buildShop();
+        if (view === 'rooms') this.renderRoomList();
+        if (this.state.state === 'LOBBY' || this.state.state === 'NO_ROOM') {
+            this.showScreen(view);
+            this.lastRenderedState = view;
+        }
     }
 
     screenForState(s) {
-        if (s === 'LOBBY') return 'lobby';
+        if (s === 'NO_ROOM' || s === 'LOBBY') return this.menuView;
         if (s === 'FINISHED' && this.raceComplete) return 'finished';
         return 'race';
     }
@@ -1212,7 +1340,7 @@ class RaceGame {
             this.showScreen(want);
             this.lastRenderedState = want;
         }
-        if (s === 'LOBBY') return;
+        if (s === 'NO_ROOM' || s === 'LOBBY') return;
         this.renderRace();
         this.updateHUD();
         if (s === 'FINISHED' && !this.raceComplete) {
@@ -1253,18 +1381,12 @@ class RaceGame {
         }
     }
 
-    trackEdges(pts, width) {
-        const inner = [], outer = [];
-        for (let i = 0; i < pts.length; i++) {
-            const p = pts[i];
-            const n = pts[(i + 1) % pts.length];
-            const dx = n.x - p.x, dy = n.y - p.y;
-            const len = Math.hypot(dx, dy) || 1;
-            const nx = -dy / len, ny = dx / len;
-            inner.push({ x: p.x + nx * width / 2, y: p.y + ny * width / 2 });
-            outer.push({ x: p.x - nx * width / 2, y: p.y - ny * width / 2 });
-        }
-        return { inner, outer };
+    // Merkez çizgisi üzerinden yol izi (keskin virajda katlanma yapmaz)
+    tracePath(ctx, pts) {
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.closePath();
     }
 
     drawWorld(ctx) {
@@ -1298,26 +1420,28 @@ class RaceGame {
             }
         }
 
-        const { inner, outer } = this.trackEdges(pts, width);
-        ctx.beginPath();
-        ctx.moveTo(inner[0].x, inner[0].y);
-        for (let i = 1; i < inner.length; i++) ctx.lineTo(inner[i].x, inner[i].y);
-        ctx.closePath();
-        for (let i = outer.length - 1; i >= 0; i--) ctx.lineTo(outer[i].x, outer[i].y);
-        ctx.closePath();
-        ctx.fillStyle = theme.asphalt;
-        ctx.fill();
-        ctx.strokeStyle = '#e8e8e8';
-        ctx.lineWidth = 3;
-        ctx.stroke();
+        // YOL: kalın fırça darbeleriyle çizilir — keskin firkete virajlarda bile
+        // kenarlar katlanmaz, üst üste binen kısımlar aynı renk olduğundan iz bırakmaz
         ctx.save();
-        ctx.lineWidth = 6;
-        ctx.setLineDash([14, 14]);
-        ctx.strokeStyle = 'rgba(255,60,60,0.8)';
-        ctx.beginPath();
-        ctx.moveTo(inner[0].x, inner[0].y);
-        for (let i = 1; i < inner.length; i++) ctx.lineTo(inner[i].x, inner[i].y);
-        ctx.closePath(); ctx.stroke();
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        // beyaz zemin şeridi (kenar çizgisi)
+        ctx.strokeStyle = '#e8e8e8';
+        ctx.lineWidth = width + 8;
+        this.tracePath(ctx, pts);
+        ctx.stroke();
+        // kırmızı-beyaz kerb: aynı genişlikte kesik kırmızı, aradan beyaz görünür
+        ctx.strokeStyle = 'rgba(255,60,60,0.9)';
+        ctx.lineWidth = width + 8;
+        ctx.setLineDash([16, 16]);
+        this.tracePath(ctx, pts);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // asfalt
+        ctx.strokeStyle = theme.asphalt;
+        ctx.lineWidth = width;
+        this.tracePath(ctx, pts);
+        ctx.stroke();
         ctx.restore();
         ctx.beginPath();
         ctx.moveTo(pts[0].x, pts[0].y);
